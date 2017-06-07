@@ -1,0 +1,29 @@
+#!/bin/bash
+
+DIR="${1-.}"
+num_runs="${RUNS-10}"
+
+time_cmd () {
+    /usr/bin/time -f 'usr:%U sys:%S wall:%e CPU:%P avgtxt:%X avgdat:%D maxrss:%M in:%I out:%O majpf:%F minpf:%R swp:%W' "$@"
+    }
+
+# get filesystem type
+fs=$(df --output=source "$DIR" | tail -n1)
+fs_type=$(awk -v fs="$fs" '$1==fs {print $3}' </proc/mounts)
+fs_opts=$(awk -v fs="$fs" '$1==fs {print $4}' </proc/mounts)
+
+cmds=()
+cmds+=("lsd")
+cmds+=("/bin/ls -f")
+cmds+=("/bin/ls -F")
+cmds+=("/bin/ls --color=always")
+cmds+=("/bin/ls -l")
+
+for cmd in "${cmds[@]}"; do
+    echo "benchmarking: $cmd" >&2
+    i=0
+    while [ $i -lt $num_runs ]; do
+        time_cmd $cmd "$DIR" >/dev/null
+        let i+=1
+    done
+done
